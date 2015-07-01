@@ -1,0 +1,64 @@
+cpartial
+  call C functions with some arguments predefined
+  cpartial is free software. It has a very liberal license. See COPYING or [1].
+
+What is cpartial?
+  cpartial is a version of Python's `partial` function for C code. Info on
+  Python's partial function can be found at [2]. The primary use-case for a
+  partial function is one where you have an external library which expects a
+  callback function with a certain number of arguments and an implementation of
+  the callback function requires additional arguments.
+
+Example:
+  The C library qsort function expects a function with the signature:
+      int compare (const void * a, const void * b);
+  The compare function you have requires some userdata, e.g.:
+      int compare (void * userdata, const void * a, const void * b);
+  You may accomplish this with the partial_quick function. See Format Strings
+  below for info on the character strings used here.
+      partial_quick(
+          NULL,
+          "v pTT*", &qsort,
+          "i ipp", &compare, 1,
+          array, array_length, sizeof(array_element),
+          userdata);
+  The first argument is an address to put the result of the library function
+    into. Since qsort is void, it is ignored. (NULL)
+  The second and third arguments define the library function. An asterix is
+    used to specify where to put the callback function. ("v pTT*", &qsort)
+  The fourth and fifth arguments define the callback function.
+    ("i ipp", &compare)
+  The sixth argument defines how many args to set by default to the callback
+    function. (1)
+  The next arguments are the arguments for the library function.
+    (array, array_length, sizeof(array_element))
+  The last arguments are the defaults for the callback function. (userdata)
+  You may see a working example of this in the example.c file.
+
+Format Strings:
+  Format Strings may be used in place of manual function definitions by using
+  any of the following functions:
+      partial_sdef_fromstr, partial_fdef_fromstr, partial_fromstr
+  Whitespace in these strings is ignored. The following characters specify
+  the types of function arguments or returns or structure members. Capitals
+  define unsigned types and lowercase define signed types.
+    Void type (for function returns only):
+        void     'v'
+    Variable-size types:
+        char     'c'
+        short    's'
+        int      'i'
+        long     'l'
+        float    'f'
+        double   'd'
+        void *   'p'
+        size_t   'T'
+    Static-size types:
+        int8_t   'b'
+        int16_t  'h'
+        int32_t  'j'
+        int64_t  'q'
+
+Notes:
+[1] http://opensource.org/licenses/BSD-3-Clause
+[2] https://docs.python.org/2/library/functools.html#functools.partial
