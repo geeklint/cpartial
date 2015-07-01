@@ -93,6 +93,7 @@ static ffi_type * FFI_TYPES[] = {
 
 struct Partial {
     struct PartialFDef * targetdef;
+    int manage;
     void * target;
     size_t nargs;
     union {
@@ -718,6 +719,7 @@ struct Partial * partial(
         return NULL;
     }
     self->targetdef = targetdef;
+    self->manage = 0;
     self->target = target;
     self->nargs = nargs = targetdef->nargs;
     if (nargs != 0){
@@ -750,9 +752,35 @@ struct Partial * partial(
     return self;
 }
 
+struct Partial * partial_manage(
+        struct PartialFDef * targetdef, void * target){
+    struct Partial * self;
+
+    self = partial(targetdef, target);
+    if (self == NULL){
+        partial_fdef_free(targetdef);
+        return NULL;
+    }
+    self->manage = 1;
+    return self;
+}
+
+struct Partial * partial_fromstr(char * fdef, void * target){
+    struct PartialFDef * targetdef;
+
+    targetdef = partial_fdef_fromstr(fdef);
+    if (targetdef == NULL){
+        return NULL;
+    }
+    return partial_manage(targetdef, target);
+}
+
 void partial_free(struct Partial * self){
     if (self->nargs > 64){
         free(self->argsset.d);
+    }
+    if (self->manage){
+        partial_fdef_free(self->targetdef);
     }
     if (self->extdef != NULL){
         partial_fdef_free(self->extdef);
@@ -806,6 +834,11 @@ void partial_set_args_va(
             sav_case(signed long, slong);
             sav_case(void *, pointer);
             sav_case(size_t, size_t);
+            case PartialType_struct:
+                value.a_struct = va_arg(*args, void *);
+                self->args[i] = value;
+                self->ffi_args[i] = value.a_struct;
+                continue;
             default:
                 // TODO: idk
                 break;
@@ -820,7 +853,11 @@ void partial_set_arg(
         struct Partial * self, size_t arg, union PartialArg value){
     PARTIALSET_SET(self, arg);
     self->args[arg] = value;
-    self->ffi_args[arg] = &(self->args[arg]);
+    if (self->targetdef->args[arg] == PartialType_struct){
+        self->ffi_args[arg] = value.a_struct;
+    } else {
+        self->ffi_args[arg] = &(self->args[arg]);
+    }
 }
 
 struct PartialFDef * partial_getdef(struct Partial * self){

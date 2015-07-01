@@ -82,6 +82,7 @@ union PartialArg {
     signed long a_slong;
     void * a_pointer;
     size_t a_size_t;
+    void * a_struct;
 };
 
 /**************************************
@@ -191,6 +192,8 @@ void partial_fdef_snprint_indent(
  * Constructor.
  */
 struct Partial * partial(struct PartialFDef *, void * function);
+struct Partial * partial_manage(struct PartialFDef *, void * function);
+struct Partial * partial_fromstr(char * fdef, void * function);
 
 /*
  * Freer.
@@ -198,16 +201,16 @@ struct Partial * partial(struct PartialFDef *, void * function);
 void partial_free(struct Partial *);
 
 /*
+ * Set the value for a particular argument.
+ */
+void partial_set_arg(struct Partial *, size_t arg, union PartialArg value);
+
+/*
  * Set the values for many arguments at once.
  */
 void partial_set_args(struct Partial *, size_t start, size_t nargs, ...);
 void partial_set_args_va(
         struct Partial *, size_t start, size_t nargs, va_list * args);
-
-/*
- * Set the value for a particular argument.
- */
-void partial_set_arg(struct Partial *, size_t arg, union PartialArg value);
 
 /*
  * Get the function definition with preset arguments removed
